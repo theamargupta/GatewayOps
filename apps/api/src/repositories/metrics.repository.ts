@@ -10,8 +10,9 @@ export class MetricsRepository {
       query = query.whereBetween('created_at', [from, to]);
     }
 
+    // pg returns COUNT (int8) as a string; every count below is converted with Number()
     const countResult = await query.clone().count('*').first() as any;
-    const totalRequests = countResult.count;
+    const totalRequests = Number(countResult.count);
 
     let failedQuery = db('api_logs');
     if (from && to) {
@@ -21,7 +22,7 @@ export class MetricsRepository {
       .where('status_code', '>=', 400)
       .count('*')
       .first() as any;
-    const failedRequests = failedResult.count;
+    const failedRequests = Number(failedResult.count);
 
     const successRate = totalRequests > 0 
       ? Math.round((totalRequests - failedRequests) / totalRequests * 100)
@@ -51,9 +52,9 @@ export class MetricsRepository {
       total_requests: totalRequests,
       failed_requests: failedRequests,
       success_rate: successRate,
-      auth_failures: authFailures.count,
+      auth_failures: Number(authFailures.count),
       avg_response_time: avgResponseTime,
-      rate_limit_violations: violations.count,
+      rate_limit_violations: Number(violations.count),
     };
   }
 
