@@ -4,9 +4,13 @@ import { MetricsSummary, TimeSeriesDataPoint, ServiceDistribution, DetailedMetri
 
 const metricsRepo = new MetricsRepository();
 
+// Short on purpose: rows are inserted outside the API, so nothing invalidates this cache (#3).
+const SUMMARY_CACHE_TTL_SECONDS = 60;
+
 export class MetricsService {
   async getSummary(from?: string, to?: string): Promise<MetricsSummary> {
-    const cacheKey = `metrics:summary`;
+    // The range is part of the key: one key for every range served one answer to all of them (#3).
+    const cacheKey = `metrics:summary:${from ?? ''}:${to ?? ''}`;
     const cached = await redis.get(cacheKey);
 
     if (cached) {
@@ -14,7 +18,7 @@ export class MetricsService {
     }
 
     const summary = await metricsRepo.getSummary(from, to);
-    await redis.setEx(cacheKey, 3600, JSON.stringify(summary));
+    await redis.setEx(cacheKey, SUMMARY_CACHE_TTL_SECONDS, JSON.stringify(summary));
 
     return summary;
   }

@@ -39,6 +39,8 @@ CREATE INDEX idx_api_logs_created_at ON api_logs(created_at);
 CREATE INDEX idx_api_logs_service_id ON api_logs(service_id);
 CREATE INDEX idx_api_logs_status_code ON api_logs(status_code);
 CREATE INDEX idx_api_logs_user_id ON api_logs(user_id);
+-- Serves "filter by service, newest first" (GET /logs?service=...) without a sort.
+CREATE INDEX idx_api_logs_service_created ON api_logs(service_id, created_at DESC);
 
 CREATE TABLE auth_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

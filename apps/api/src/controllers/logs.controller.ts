@@ -1,39 +1,14 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { LogsService } from '../services/logs.service';
+import { logsQuerySchema } from '../dto/logs.dto';
 
 const logsService = new LogsService();
 
 export class LogsController {
   async findAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const {
-        page = '1',
-        limit = '10',
-        service,
-        statusCode,
-        from,
-        to,
-        search,
-      } = req.query as {
-        page?: string;
-        limit?: string;
-        service?: string;
-        statusCode?: string;
-        from?: string;
-        to?: string;
-        search?: string;
-      };
-
-      const result = await logsService.getLogs({
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-        service,
-        statusCode: statusCode ? parseInt(statusCode, 10) : undefined,
-        from,
-        to,
-        search,
-      });
+      const result = await logsService.getLogs(logsQuerySchema.parse(req.query));
 
       res.json(result);
     } catch (error) {

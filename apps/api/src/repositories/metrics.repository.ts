@@ -1,5 +1,6 @@
 import { db } from '../config/database';
 import { MetricsSummary, TimeSeriesDataPoint, ServiceDistribution } from '../dto/metrics.dto';
+import { LOGIN_FAILURE_EVENT_TYPES } from '../constants/authEvents';
 
 export class MetricsRepository {
   async getSummary(from?: string, to?: string): Promise<MetricsSummary> {
@@ -9,8 +10,9 @@ export class MetricsRepository {
       query = query.whereBetween('created_at', [from, to]);
     }
 
+    // pg returns COUNT (int8) as a string; every count below is converted with Number()
     const countResult = await query.clone().count('*').first() as any;
-    const totalRequests = countResult.count;
+    const totalRequests = Number(countResult.count);
 
     let failedQuery = db('api_logs');
     if (from && to) {
@@ -20,14 +22,14 @@ export class MetricsRepository {
       .where('status_code', '>=', 400)
       .count('*')
       .first() as any;
-    const failedRequests = failedResult.count;
+    const failedRequests = Number(failedResult.count);
 
     const successRate = totalRequests > 0 
       ? Math.round((totalRequests - failedRequests) / totalRequests * 100)
       : 100;
 
     let authFailuresQuery = db('auth_events')
-      .where('event_type', 'login_failure');
+      .whereIn('event_type', LOGIN_FAILURE_EVENT_TYPES);
     if (from && to) {
       authFailuresQuery = authFailuresQuery.whereBetween('created_at', [from, to]);
     }
@@ -50,9 +52,9 @@ export class MetricsRepository {
       total_requests: totalRequests,
       failed_requests: failedRequests,
       success_rate: successRate,
-      auth_failures: authFailures.count,
+      auth_failures: Number(authFailures.count),
       avg_response_time: avgResponseTime,
-      rate_limit_violations: violations.count,
+      rate_limit_violations: Number(violations.count),
     };
   }
 

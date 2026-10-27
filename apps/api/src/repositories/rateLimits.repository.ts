@@ -1,5 +1,6 @@
 import { db } from '../config/database';
 import { RateLimitViolation } from '../types';
+import { requestsPerMinute } from '../utils/requestsPerMinute';
 
 export class RateLimitsRepository {
   async getSummary(from?: string, to?: string): Promise<any> {
@@ -15,19 +16,31 @@ export class RateLimitsRepository {
       requestsQuery = requestsQuery.whereBetween('window_start', [from, to]);
     }
     const requestsResult = await requestsQuery.sum('request_count').first() as any;
-    const totalRequests = requestsResult.sum || 0;
+    // pg returns SUM(bigint) as a string
+    const totalRequests = Number(requestsResult.sum ?? 0);
 
-    const windowSeconds = from && to 
+    const windowSeconds = from && to
       ? (new Date(to).getTime() - new Date(from).getTime()) / 1000
-      : 3600;
-    const totalMinutes = Math.floor(windowSeconds / 60);
-    const rpm = totalMinutes > 0 ? Math.floor(totalRequests / totalMinutes) : 0;
+      : await this.dataSpanSeconds();
 
     return {
       total_violations: totalViolations.count,
-      requests_per_minute: rpm,
+      requests_per_minute: requestsPerMinute(totalRequests, windowSeconds),
       peak_rpm: 0,
     };
+  }
+
+  // With no range selected, the window is the span the violations actually cover —
+  // not a fixed hour, which overstated RPM for data spread over days.
+  private async dataSpanSeconds(): Promise<number> {
+    const span = await db('rate_limit_violations')
+      .min('window_start as first')
+      .max('window_end as last')
+      .first() as any;
+    if (!span?.first || !span?.last) {
+      return 0;
+    }
+    return (new Date(span.last).getTime() - new Date(span.first).getTime()) / 1000;
   }
 
   async getViolations(from?: string, to?: string): Promise<RateLimitViolation[]> {
