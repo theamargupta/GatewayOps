@@ -1,6 +1,7 @@
 import { db } from '../config/database';
 import { AuthEvent } from '../types';
 import { PaginationMeta } from '../dto/pagination.dto';
+import { LOGIN_FAILURE_EVENT_TYPES } from '../constants/authEvents';
 
 export class AuthRepository {
   async getStats(from?: string, to?: string): Promise<any> {
@@ -10,7 +11,7 @@ export class AuthRepository {
     }
     const successResult = await successQuery.count('*').first() as any;
 
-    let failureQuery = db('auth_events').where('event_type', 'login_failure');
+    let failureQuery = db('auth_events').whereIn('event_type', LOGIN_FAILURE_EVENT_TYPES);
     if (from && to) {
       failureQuery = failureQuery.whereBetween('created_at', [from, to]);
     }

@@ -1,5 +1,6 @@
 import { db } from '../config/database';
 import { MetricsSummary, TimeSeriesDataPoint, ServiceDistribution } from '../dto/metrics.dto';
+import { LOGIN_FAILURE_EVENT_TYPES } from '../constants/authEvents';
 
 export class MetricsRepository {
   async getSummary(from?: string, to?: string): Promise<MetricsSummary> {
@@ -27,7 +28,7 @@ export class MetricsRepository {
       : 100;
 
     let authFailuresQuery = db('auth_events')
-      .where('event_type', 'login_failure');
+      .whereIn('event_type', LOGIN_FAILURE_EVENT_TYPES);
     if (from && to) {
       authFailuresQuery = authFailuresQuery.whereBetween('created_at', [from, to]);
     }
