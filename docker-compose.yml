@@ -46,7 +46,8 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:4000/api/v1/health | grep -q ok || exit 1"]
+      # node:20-alpine ships BusyBox wget, not curl
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/api/v1/health | grep -q ok || exit 1"]
       interval: 5s
       timeout: 10s
       retries: 30
