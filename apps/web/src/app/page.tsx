@@ -10,6 +10,7 @@ import { ServiceDistributionChart } from '../components/dashboard/ServiceDistrib
 import { DateRangePicker } from '../components/ui/DateRangePicker';
 import { Spinner } from '../components/ui/Spinner';
 import { api } from '../lib/api';
+import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 
 export default function Dashboard() {
   const now = new Date();
@@ -19,13 +20,7 @@ export default function Dashboard() {
 
   const [dateRange, setDateRange] = useState({ from: fromDefault, to: toDefault });
 
-  const summaryQuery = useQuery({
-    queryKey: ['metrics', 'summary'],
-    queryFn: async () => {
-      const response = await api.get('/metrics/summary');
-      return response.data.data;
-    },
-  });
+  const summaryQuery = useDashboardMetrics(dateRange.from, dateRange.to);
 
   const requestsQuery = useQuery({
     queryKey: ['metrics', 'requests-over-time', dateRange.from, dateRange.to],
